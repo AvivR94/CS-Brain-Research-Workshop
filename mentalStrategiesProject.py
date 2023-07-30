@@ -26,16 +26,15 @@ df = df.fillna(0)
 
 ###----------------- extract success rates -----------------------###
 success_cols_names = ["Qhat"]
+df_success =  df.loc[:, df.columns.isin(["sub_num", "session_num"]+success_cols_names)]
 df_filtered = df.drop(success_cols_names, axis="columns")
+
 ###----------------- remove low variance columns -----------------###
 variances = df.loc[:, ~df.columns.isin(["sub_num", "session_num"])].var()
 variance_threshold = 0.025
 low_variance_columns = variances[variances < variance_threshold].index
 df_filtered = df_filtered.drop(low_variance_columns, axis="columns")
-df_filtered.to_csv(
-    "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/modified_file.csv",
-    index=False,
-)
+
 ###--------------- remove highly correlated columns ---------------###
 
 # Calculate correlation matrix
@@ -115,18 +114,31 @@ def meanVectorForEachSession(session):
 
 
 ###----02---PROCESSING WITHIN SUBJECT: FEATURE EXTRACTION---------###
-exit()
+
 per_subject = df_filtered.groupby(["sub_num"])
+success_per_subject = df_success.groupby(["sub_num"])
 subjects = []
+success_rates = []
+
 for subject_tuple in per_subject:
     subject_trial = subject_tuple[1]
     subject_num = subject_tuple[0][0]
+    subject_trial_success = success_per_subject.get_group(subject_num)
     subject_features = []
     subject_sessions = subject_trial.groupby(["session_num"])
+    subject_sessions_success = subject_trial_success.groupby(["session_num"])
+
     #subject has less than 5 sessions
     if len(subject_sessions) < 5:
-        # print(f"subject {subject_num} has {len(subject_sessions)} sessions")
         continue
+    
+    session_nums = subject_sessions_success.groups.keys()
+    first_session_mean = subject_sessions_success.get_group(min(session_nums))["Qhat"].mean()
+    last_session_mean = subject_sessions_success.get_group(max(session_nums))["Qhat"].mean()
+
+    subject_success = [last_session_mean, last_session_mean - first_session_mean]
+    success_rates.append(subject_success)
+
     strategies_cosines = []
     mean_sessions = []
     # cosine for session (5 runs)
@@ -148,13 +160,21 @@ for subject_tuple in per_subject:
     subjects.append((subject_num, subject_features))
     pd.DataFrame(subjects).to_csv("/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/subjects_features.csv",
     index=False,)
+pd.DataFrame(success_rates).to_csv("/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/subjects_success.csv",
+    index=False,)
+
 ###---------------------------------------------------------------###
 
 ###-------03---PROCESSING BETWEEN SUBJECT: LINEAR PREDICTION MODEL---------###
-# pca = sklearn.decomposition.PCA(n_components=2)
-# subjects_pca = []
-# for subject_tuple in subjects:
-#     subject_num = subject_tuple[0]
-#     subject_features = subject_tuple[1]
-#     subjects_pca.append(pca.fit_transform(np.array(subject_features))) #pca recieves 2d array
-#     print(f"subject {subject_num} pca: {subjects_pca[subject_num]}")
+
+LinearRegressionModel = sklearn.linear_model.LinearRegression()
+# Split the data into training and test sets (50% for training, 50% for testing)
+X_train, X_test, y_train, y_test = train_test_split(subjects, success_rates, test_size=0.5, random_state=42)
+LinearRegressionModel.fit(X_train, y_train)
+predictions = LinearRegressionModel.predict(X_test)
+
+plt.scatter(y_test, predictions)
+plt.xlabel("Actual Success Rates")
+plt.ylabel("Predicted Success Rates")
+plt.title("Linear Regression: Actual vs. Predicted (Test Data)")
+plt.show()
