@@ -38,10 +38,10 @@ def runGUI():
   var_option2 = IntVar()
   check_option2 = tk.Checkbutton(app, text="Option 2", variable=var_option2)
 
-  directory_label = tk.Label(app, text="Selected Directory:")
+  directory_label = tk.Label(app, text="Selected Raw Data File:")
   directory_entry = tk.Entry(app, width=50)
 
-  choose_button = tk.Button(app, text="Choose Directory", command=choose_directory)
+  choose_button = tk.Button(app, text="Choose File", command=choose_directory)
 
   def submit():
     variable1 = entry_var1.get()
