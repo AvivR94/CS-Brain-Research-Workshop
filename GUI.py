@@ -6,6 +6,7 @@ import os
 from mentalStrategiesProject import runApp
 
 def runGUI():
+  print("Running GUI...")
   # Save variables to JSON file
   def save_variables(variables_dict, filename):
     script_dir = os.path.dirname(__file__)  # Directory of the script
@@ -19,67 +20,98 @@ def runGUI():
   def choose_directory():
     file_path = filedialog.askopenfilename()  # Open directory selection dialog
     if file_path:
-        directory_entry.delete(0, tk.END)  # Clear the entry field
-        directory_entry.insert(0, file_path)  # Insert selected directory path
+        data_file_path_entry.delete(0, tk.END)  # Clear the entry field
+        data_file_path_entry.insert(0, file_path)  # Insert selected directory path
+  
+  def validate_numeric_input(P):
+    if P == "":
+        return True
+    try:
+        float(P)
+        return True
+    except ValueError:
+        return False
 
           
   app = tk.Tk()
   app.title("Variable Input GUI")
 
-  label_var1 = tk.Label(app, text="Variable 1:")
-  entry_var1 = tk.Entry(app)
+  success_cols_names_label = tk.Label(app, text="success columns names:")
+  success_cols_names_entry = tk.Entry(app)
+  
+  subject_num_col_name_label = tk.Label(app, text="subject_number column name:")
+  subject_num_col_name_entry = tk.Entry(app)
 
-  label_var2 = tk.Label(app, text="Variable 2:")
-  entry_var2 = tk.Entry(app)
+  session_num_col_name_label = tk.Label(app, text="session_number column name:")
+  session_num_col_name_entry = tk.Entry(app)
 
-  var_option1 = IntVar()
-  check_option1 = tk.Checkbutton(app, text="Option 1", variable=var_option1)
+  data_preprocessed_var = IntVar()
+  data_preprocessed_box = tk.Checkbutton(app, text="data preprocessed?", variable=data_preprocessed_var)
 
-  var_option2 = IntVar()
-  check_option2 = tk.Checkbutton(app, text="Option 2", variable=var_option2)
+  run_on_processed_data_var = IntVar()
+  run_on_processed_data_box = tk.Checkbutton(app, text="run on the proccessed data (unchecked means run on raw data)", variable=run_on_processed_data_var)
 
-  directory_label = tk.Label(app, text="Selected Raw Data File:")
-  directory_entry = tk.Entry(app, width=50)
+  data_file_path_label = tk.Label(app, text="Select Raw Data File:")
+  data_file_path_entry = tk.Entry(app, width=50)
 
-  choose_button = tk.Button(app, text="Choose File", command=choose_directory)
+  choose_data_file_path_button = tk.Button(app, text="Choose File", command=choose_directory)
+
+  correlation_threshold_label = tk.Label(app, text="Enter Numeric Value:")
+  correlation_threshold_entry = tk.Entry(app, validate="key", validatecommand=(app.register(validate_numeric_input), '%P'))
+
 
   def submit():
-    variable1 = entry_var1.get()
-    variable2 = entry_var2.get()
-    option1 = var_option1.get()
-    option2 = var_option2.get()
+
+    subject_num_col_name = subject_num_col_name_entry.get()
+    session_num_col_name = session_num_col_name_entry.get()
+    data_preprocessed = data_preprocessed_var.get()
+    run_on_processed_data = run_on_processed_data_var.get()
+    correlation_threshold = correlation_threshold_entry.get()
+    data_file_path = data_file_path_entry.get()
+    success_cols_names = success_cols_names_entry.get()
       
-    print("Variable 1:", variable1)
-    print("Variable 2:", variable2)
-    print("Option 1:", option1)
-    print("Option 2:", option2)
+    print("subject_num_col_name:", subject_num_col_name)
+    print("session_num_col_name:", session_num_col_name)
+    print("data_preprocessed:", data_preprocessed)
+    print("run_on_processed_data:", run_on_processed_data)
+    print("correlation_threshold:", correlation_threshold)
+    print("data_file_path:", data_file_path)
+    print("success_cols_names:", success_cols_names)
 
     variables_dict = {
-      "variable1": variable1,
-      "variable2": variable2,
-      "option1": option1,
-      "option2": option2
+      "success_cols_names": success_cols_names,
+      "subject_num_col_name": subject_num_col_name,
+      "session_num_col_name": session_num_col_name,
+      "data_preprocessed": data_preprocessed,
+      "run_on_processed_data": run_on_processed_data,
+      "correlation_threshold": correlation_threshold,
+      "data_file_path": data_file_path,
     }
     save_variables(variables_dict, "user_variables.json")  # Save variables to JSON file
     app.destroy()  # Close the GUI window
 
   submit_button = tk.Button(app, text="Submit", command=submit)
 
-  label_var1.pack()
-  entry_var1.pack()
 
-  label_var2.pack()
-  entry_var2.pack()
+  data_file_path_label.pack(pady=5)
+  data_file_path_entry.pack(pady=5)
+  choose_data_file_path_button.pack()
 
-  check_option1.pack()
-  check_option2.pack()
+  success_cols_names_label.pack(pady=5)
+  success_cols_names_entry.pack()
 
-  directory_label.pack(pady=5)
-  directory_entry.pack(pady=5)
-  choose_button.pack(pady=5)
+  subject_num_col_name_label.pack()
+  subject_num_col_name_entry.pack()
 
-  submit_button.pack()
+  session_num_col_name_label.pack()
+  session_num_col_name_entry.pack()
+  
+  data_preprocessed_box.pack()
+  run_on_processed_data_box.pack()
+
+  correlation_threshold_label.pack()
+  correlation_threshold_entry.pack()
+
+  submit_button.pack(pady=10)
 
   app.mainloop()
-
-

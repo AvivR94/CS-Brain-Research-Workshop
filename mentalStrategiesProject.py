@@ -20,6 +20,7 @@ import json
 import os
 
 def runApp():
+    print("Start running app...")
     def load_variables(filename):
         script_dir = os.path.dirname(__file__)  # Directory of the script
         abs_file_path = os.path.join(script_dir, filename)
@@ -46,6 +47,10 @@ def runApp():
     last_session_success_rates_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/last_session_success_rates.csv"
     last_minus_first_session_success_rates_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/last_minus_first_session_success_rates.csv"
     run_on_processed_data = 1
+    unprocessed_subject_features_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/unprocessed_subject_features.csv"
+    unprocessed_subjects_mean_sessions_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/unprocessed_subjects_mean_sessions.csv"
+    unprocessed_subject_success_rates_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/unprocessed_subject_success_rates.csv"
+    unprocessed_subjects_mean_sessions_success_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshopunprocessed_subjects_mean_sessions_success_file_path.csv"
 
     ###-----------------LOAD DATA-----------------------------------###
 
@@ -54,7 +59,7 @@ def runApp():
     df = pd.DataFrame(data)
 
     ###----01------------------PREPROCESSING DATA---------------------###
-    df = df.fillna(0)
+    df = df.fillna(0.5)
 
     ###----------------- extract success rates -----------------------###
 
@@ -91,7 +96,7 @@ def runApp():
     )
     # Save filtered dataset to CSV
     df_filtered.to_csv(filtered_data_file_path, index=False,)
-
+    
     ###------------------FEATURE EXTRACTION FUNCS---------------------###
 
     def softCos(a, b, matrix):
@@ -142,75 +147,92 @@ def runApp():
 
 
     ###----02---PROCESSING WITHIN SUBJECT: FEATURE EXTRACTION---------###
-    if run_on_processed_data:
-        if not data_preprocessed:
-            per_subject = df_filtered.groupby([subject_num_col_name])
-            success_per_subject = df_success.groupby([subject_num_col_name])
-            subjects = []
-            last_session_success_rates = []
-            last_minus_first_session_success_rates = []
-            for subject_tuple in per_subject:
-                subject_trial = subject_tuple[1]
-                subject_num = subject_tuple[0][0]
-                subject_trial_success = success_per_subject.get_group(subject_num)
-                subject_features = []
-                subject_sessions = subject_trial.groupby([session_num_col_name])
-                subject_sessions_success = subject_trial_success.groupby([session_num_col_name])
 
-                #drop subjects with less than 5 sessions
-                if len(subject_sessions) < 5:
-                    continue
-                #drop first session if they have 6 sessions
-                if len(subject_sessions) == 6:
-                    subject_sessions = subject_sessions.filter(lambda x: x.name != 1)
-                    subject_sessions_success = subject_sessions_success.filter(lambda x: x.name != 1)
-                    subject_sessions = subject_sessions.groupby([session_num_col_name])
-                    subject_sessions_success = subject_sessions_success.groupby([session_num_col_name])
-                
-                session_nums = subject_sessions_success.groups.keys()
-                first_session_mean = subject_sessions_success.get_group(min(session_nums))["Qhat"].mean()
-                last_session_mean = subject_sessions_success.get_group(max(session_nums))["Qhat"].mean()
-                last_session_success_rates.append(last_session_mean)
-                last_minus_first_session_success_rates.append(last_session_mean - first_session_mean)
+    if not data_preprocessed:
+        per_subject = df_filtered.groupby([subject_num_col_name])
+        success_per_subject = df_success.groupby([subject_num_col_name])
+        processed_subjects = []
+        unprocessed_subjects_mean_sessions = [[]for _ in range(6)]
+        unprocessed_subjects_mean_sessions_success = [[]for _ in range(6)]
+        unprocessed_subject_success_rates = []
+        last_session_success_rates = []
+        last_minus_first_session_success_rates = []
+        for subject_tuple in per_subject:
+            subject_trial = subject_tuple[1]
+            subject_num = subject_tuple[0][0]
+            subject_trial_success = success_per_subject.get_group(subject_num)
+            subject_features = []
+            unprocessed_subject_features = []
+            subject_sessions = subject_trial.groupby([session_num_col_name])
+            subject_sessions_success = subject_trial_success.groupby([session_num_col_name])
 
-                strategies_cosines = []
-                mean_sessions = []
-                # cosine for session (5 runs)
-                for session_tuple in subject_sessions:
-                    session = session_tuple[1].drop([session_num_col_name, subject_num_col_name], axis="columns")
-                    session_num = session_tuple[0][0]
-                    # session has 1 run -> don't perform cosine within session
-                    if len(session) >= 2:
-                        cosineWithinSubject(
-                            session, subject_features, classify_sessions="within"
-                        ) 
-                    else:
-                        subject_features.append(-1) # -1 means that the subject has less than 2 runs in this session
-                    mean_sessions.append(
-                        meanVectorForEachSession(session)
-                    )
-                cosineWithinSubject(
-                    pd.DataFrame(mean_sessions), subject_features, classify_sessions = "between"
-                )
-                # replace -1 with mean of other sessions
-                mean_cosine = 0
-                for cosine_within_session in subject_features[:5]:
-                    if cosine_within_session != -1:
-                        mean_cosine += cosine_within_session
-                mean_cosine = mean_cosine/5
-                for session_idx,cosine_within_session in enumerate(subject_features[:5]):
-                    if cosine_within_session == -1:
-                        subject_features[session_idx] = mean_cosine
+            #drop subjects with less than 5 sessions
+            if len(subject_sessions) < 5:
+                continue
+            #drop first session if they have 6 sessions
+            if len(subject_sessions) == 6:
+                subject_sessions = subject_sessions.filter(lambda x: x.name != 1)
+                subject_sessions_success = subject_sessions_success.filter(lambda x: x.name != 1)
+                subject_sessions = subject_sessions.groupby([session_num_col_name])
+                subject_sessions_success = subject_sessions_success.groupby([session_num_col_name])
+            
+            session_nums = subject_sessions_success.groups.keys()
+            first_session_mean = subject_sessions_success.get_group(min(session_nums))["Qhat"].mean()
+            last_session_mean = subject_sessions_success.get_group(max(session_nums))["Qhat"].mean()
+            last_session_success_rates.append(last_session_mean)
+            last_minus_first_session_success_rates.append(last_session_mean - first_session_mean)
 
-                subjects.append(subject_features)
-                pd.DataFrame(subjects).to_csv(subject_features_file_path, index=False,)
-                pd.DataFrame(last_session_success_rates).to_csv(last_session_success_rates_file_path, index=False,)
-                pd.DataFrame(last_minus_first_session_success_rates).to_csv(last_minus_first_session_success_rates_file_path, index=False,)
-                data_preprocessed = 1
-        else:
-            subjects = pd.DataFrame(pd.read_csv(subject_features_file_path))
-            last_session_success_rates = pd.DataFrame(pd.read_csv(last_session_success_rates_file_path))
-            last_minus_first_session_success_rates = pd.DataFrame(pd.read_csv(last_minus_first_session_success_rates_file_path))
+            mean_sessions = []
+            mean_session_success_rates = []
+            # cosine for session (5 runs)
+            for session_tuple in subject_sessions:
+                session = session_tuple[1].drop([session_num_col_name, subject_num_col_name], axis="columns")
+                session_num = session_tuple[0][0]
+                session_success = subject_sessions_success.get_group(session_num)
+                unprocessed_subjects_mean_sessions_success[session_num-1].append(session_success["Qhat"].mean())
+                mean_session_success_rates.append(session_success["Qhat"].mean())
+                # session has 1 run -> don't perform cosine within session
+                if len(session) >= 2:
+                    cosineWithinSubject(
+                        session, subject_features, classify_sessions="within"
+                    ) 
+                else:
+                    subject_features.append(-1) # -1 means that the subject has less than 2 runs in this session
+                mean_session = meanVectorForEachSession(session)
+                mean_sessions.append(mean_session)
+                unprocessed_subjects_mean_sessions[session_num-1].append(mean_session)
+            cosineWithinSubject(pd.DataFrame(mean_sessions), subject_features, classify_sessions = "between")
+            unprocessed_subject_features.append(meanVectorForEachSession(pd.DataFrame(mean_sessions)))
+            unprocessed_subject_success_rates.append(pd.DataFrame(mean_session_success_rates).mean())
+
+            # replace -1 with mean of other sessions
+            mean_cosine = 0
+            for cosine_within_session in subject_features[:5]:
+                if cosine_within_session != -1:
+                    mean_cosine += cosine_within_session
+            mean_cosine = mean_cosine/5
+            for session_idx,cosine_within_session in enumerate(subject_features[:5]):
+                if cosine_within_session == -1:
+                    subject_features[session_idx] = mean_cosine
+
+            processed_subjects.append(subject_features)
+            pd.DataFrame(processed_subjects).to_csv(subject_features_file_path, index=False,)
+            pd.DataFrame(last_session_success_rates).to_csv(last_session_success_rates_file_path, index=False,)
+            pd.DataFrame(last_minus_first_session_success_rates).to_csv(last_minus_first_session_success_rates_file_path, index=False,)
+            pd.DataFrame(unprocessed_subject_features).to_csv(unprocessed_subject_features_file_path, index=False,)
+            pd.DataFrame(unprocessed_subjects_mean_sessions).to_csv(unprocessed_subjects_mean_sessions_file_path, index=False,)
+            pd.DataFrame(unprocessed_subject_success_rates).to_csv(unprocessed_subject_success_rates_file_path, index=False,)
+            pd.DataFrame(unprocessed_subjects_mean_sessions_success).to_csv(unprocessed_subjects_mean_sessions_success_file_path, index=False,)
+            data_preprocessed = 1
+    else:
+        processed_subjects = pd.DataFrame(pd.read_csv(subject_features_file_path))
+        last_session_success_rates = pd.DataFrame(pd.read_csv(last_session_success_rates_file_path))
+        last_minus_first_session_success_rates = pd.DataFrame(pd.read_csv(last_minus_first_session_success_rates_file_path))
+        unprocessed_subject_features = pd.DataFrame(pd.read_csv(unprocessed_subject_features_file_path))
+        unprocessed_subjects_mean_sessions = pd.DataFrame(pd.read_csv(unprocessed_subjects_mean_sessions_file_path))
+        unprocessed_subject_success_rates = pd.DataFrame(pd.read_csv(unprocessed_subject_success_rates_file_path))
+        unprocessed_subjects_mean_sessions_success = pd.DataFrame(pd.read_csv(unprocessed_subjects_mean_sessions_success_file_path))
+
 
 
     ###-------03---PROCESSING BETWEEN SUBJECT: PREDICTION MODELS---------###
@@ -229,51 +251,68 @@ def runApp():
         return predictions
 
 
+
+    ###----------------------PLOT RESULTS------------------------###
+    def plot(model, predictions, score, y_test, run_on_processed_data):
+        plt.scatter(y_test, predictions)
+        plt.xlabel("Actual Success Rates")
+        plt.ylabel("Predicted Success Rates")
+        plt.title(f"processed data={run_on_processed_data}, {model}: Actual vs. Predicted (Test Data), score: {score}")
+        plt.show()
+
+
     ###---------------------TEST-----------------------------###
 
     #linear models
     linear_regression_model = sklearn.linear_model.LinearRegression()
-    random_forest_model = sklearn.ensemble.RandomForestRegressor()
-    ridge_model = sklearn.linear_model.Ridge()
-    lasso_model = sklearn.linear_model.Lasso()
     logistic_regression_model = sklearn.linear_model.LogisticRegression()
 
     #clustering models
-    knn_model = sklearn.neighbors.KNeighborsRegressor()
     kmeans = sklearn.cluster.KMeans(n_clusters=2, random_state=0)
 
-
-
     if run_on_processed_data:
-    ###---------------------RUN KMEANS-----------------------------###
+        #run kmeans
         model = kmeans
-        predictions = clustering(model, subjects)
-    ###----------------------ESTIMATE ACCURACY------------------------###
+        kmeans_predictions = clustering(model, processed_subjects)
+        # last_minus_first_session_success_rates = np.array(last_minus_first_session_success_rates).reshape(-1, 1)
+        # plot(model, kmeans_predictions, 0, last_minus_first_session_success_rates, run_on_processed_data)
+        # kmeans is fine
+        #estimate accuracy
         model = logistic_regression_model
-
         score = 0
         max_score = 0
-        np.array(last_minus_first_session_success_rates).reshape(-1, 1)
+        last_minus_first_session_success_rates = np.array(last_minus_first_session_success_rates).reshape(-1, 1)
         for i in range(5):
-            logistic_X_train, logistic_X_test, logistic_y_train, logistic_y_test = train_test_split(last_minus_first_session_success_rates, predictions, test_size=0.2)
+            logistic_X_train, logistic_X_test, logistic_y_train, logistic_y_test = train_test_split(last_minus_first_session_success_rates, kmeans_predictions, test_size=0.2)
             logistic_predictions = regression(model, logistic_X_train, logistic_y_train, logistic_X_test)
-            model_score = model.score(logistic_y_test, logistic_predictions)
+            logistic_y_test = np.array(logistic_y_test).reshape(-1, 1)
+            logistic_predictions = np.array(logistic_predictions).reshape(-1, 1)
+            model_score = model.score(logistic_X_test, logistic_predictions)
+            print(f"model score: {model_score}")
+            #TODO: score is always 1, why?
             if model_score > max_score:
+                max_score = model_score
                 best_predictions = logistic_predictions
+                best_success = logistic_X_test
             score += model_score
         score = score/5
 
-    ###----------------------PLOT RESULTS------------------------###
-        plt.scatter(logistic_y_test, best_predictions)
-        plt.xlabel("Actual Success Rates")
-        plt.ylabel("Predicted Success Rates")
-        plt.title(f"{model}: Actual vs. Predicted (Test Data), score: {score}")
-        plt.show()
+        plot(model, best_predictions, score, best_success, True)
 
-
-    else:
-        #TODO: run on unprocessed data - 
+    else: #run on unprocessed data
         # 1. linear regression - each subject is a mean mental strategy vector and mean success rate
+        model = linear_regression_model
+        unprocessed_subject_features = np.array(unprocessed_subject_success_rates).reshape(-1, 1)
+        unprocessed_X_train, unprocessed_X_test, unprocessed_y_train, unprocessed_y_test = train_test_split(unprocessed_subject_features, unprocessed_subject_success_rates, test_size=0.2)
+        unprocessed_predictions = regression(model, unprocessed_X_train, unprocessed_y_train, unprocessed_X_test)
+        plot(model, unprocessed_predictions, model.score(unprocessed_y_test, unprocessed_predictions), unprocessed_y_test, False)
+    
         # 2. 6 linear regressions - each subject is a mean mental strategy vector and success rate for each session
-        i = 0
+        model = linear_regression_model
+        for session_num in range(1,6):
+            unprocessed_subjects_mean_sessions[session_num-1] = np.array(unprocessed_subjects_mean_sessions[session_num-1]).reshape(-1, 1)
+            unprocessed_X_train, unprocessed_X_test, unprocessed_y_train, unprocessed_y_test = train_test_split(unprocessed_subjects_mean_sessions[session_num-1], unprocessed_subjects_mean_sessions_success[session_num-1], test_size=0.2)
+            unprocessed_predictions = regression(model, unprocessed_X_train, unprocessed_y_train, unprocessed_X_test)
+            plot(model, unprocessed_predictions, model.score(unprocessed_y_test, unprocessed_predictions), unprocessed_y_test, False)
 
+runApp()
