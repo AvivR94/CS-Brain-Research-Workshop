@@ -19,8 +19,9 @@ import math
 import json
 import os
 from sklearn.metrics import accuracy_score
-from sklearn.metrics import r2_score
+# from sklearn.metrics import r2_score
 from sklearn.preprocessing import MinMaxScaler
+from GUI import saveToFile
 
 def runApp():
     print("Start running app...")
@@ -31,13 +32,27 @@ def runApp():
             variables_dict = json.load(file)
             return variables_dict
 
+    # GUI variables
     # loaded_variables = load_variables("user_variables.json")
-    # print(loaded_variables)
-    # how it should be:
-    # variable1 = loaded_variables["variable1"]
-    # variable2 = loaded_variables["variable2"]
-    # option1 = loaded_variables["option1"]
-    # option2 = loaded_variables["option2"]
+    # subject_num_col_name = loaded_variables["subject_num_col_name"]
+    # session_num_col_name = loaded_variables["session_num_col_name"]
+    # success_cols_names = loaded_variables["success_cols_names"] # // @TODO: add the [] of it in the code
+    # correlation_threshold = loaded_variables["correlation_threshold"]
+    # data_preprocessed = loaded_variables["data_preprocessed"]
+    # run_on_processed_data = loaded_variables["run_on_processed_data"]
+    # num_of_sessions = loaded_variables["num_of_sessions"]
+    # num_of_runs_per_session = loaded_variables["num_of_runs_per_session"]
+    # data_file_path = saveToFile('mental_strategies_data.csv')
+    # filtered_data_file_path = saveToFile('filtered_dataset.csv')
+    # subject_features_file_path = saveToFile('subjects_features.csv')
+    # last_session_success_rates_file_path = saveToFile('last_session_success_rates.csv')
+    # last_minus_first_session_success_rates_file_path = saveToFile('last_minus_first_session_success_rates.csv')
+    # unprocessed_subject_features_file_path = saveToFile('unprocessed_subject_features.csv')
+    # unprocessed_subjects_mean_sessions_file_path = saveToFile('unprocessed_subjects_mean_sessions.csv')
+    # unprocessed_subject_success_rates_file_path = saveToFile('unprocessed_subject_success_rates.csv')
+    # unprocessed_subjects_mean_sessions_success_file_path = saveToFile('unprocessed_subjects_mean_sessions_success_file_path.csv')
+    # kmeans_successful_file_path = saveToFile('kmeans_successful.csv')
+    # kmeans_unsuccessful_file_path = saveToFile('kmeans_unsuccessful.csv')
     ###-----------------SET VARIABLES-----------------------------------###             
     data_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/mental_strategies_data.csv"
     success_cols_names = ["Qhat"]
@@ -54,6 +69,8 @@ def runApp():
     unprocessed_subjects_mean_sessions_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/unprocessed_subjects_mean_sessions.csv"
     unprocessed_subject_success_rates_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/unprocessed_subject_success_rates.csv"
     unprocessed_subjects_mean_sessions_success_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshopunprocessed_subjects_mean_sessions_success_file_path.csv"
+    kmeans_successful_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/kmeans_successful.csv"
+    kmeans_unsuccessful_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/kmeans_unsuccessful.csv"
     num_of_sessions = 6
     num_of_runs_per_session = 5
     ###-----------------LOAD DATA-----------------------------------###
@@ -254,37 +271,51 @@ def runApp():
         predictions = model.fit_predict(x)
         return predictions
 
+    # ###---------------------ACCURACY FUNCTION----------------------------###
 
-    def r2_accuracy_score(y_test, predictions):
-        # Calculate R-squared
-        score = r2_score(y_test, predictions)
-        # Scale R-squared to the range [0, 1]
-        scaler = MinMaxScaler(feature_range=(0, 1))
-        score = scaler.fit_transform([[score]])[0][0]
-        return score
+    # def r2_accuracy_score(y_test, predictions):
+    #     # Calculate R-squared
+    #     from scipy.stats import pearsonr
+    #     print(y_test)
+    #     print(predictions)
+    #     score = pearsonr(y_test, predictions)
+    #     # Scale R-squared to the range [0, 1]
+    #     #scaler = MinMaxScaler(feature_range=(0, 1))
+    #     #score = scaler.fit_transform([[score]])[0][0]
+    #     return score
 
     ###----------------------PLOT RESULTS------------------------###
-    def plot_kmeans(model, predictions, score, y_test):
+    def plot_kmeans(predictions, score, y_test):
         plt.scatter(y_test, predictions)
         plt.xlabel("Actual Success Rates")
         ytick_positions = [0, 1]
         ytick_labels = ['0', '1']
         plt.yticks(ytick_positions, ytick_labels)
         plt.ylabel("Kmeans Classification")
-        plt.title(f"{model}, accuracy score: {score}")
+        plt.title(f"Kmeans, Accuracy Score: {score}")
         plt.show()
 
-    def plot_linear(model, y_test, y_pred, score, session_num = -1):
+    def plot_linear(y_test, y_pred, score, session_num = -1):
         plt.scatter(y_test, y_pred, color="black")
         plt.plot(y_test, y_test, color="blue", linewidth=3)
         plt.xlabel("Actual Success Rates")
         plt.ylabel("Predicted Success Rates")
         if session_num > -1:
-            plt.title(f"{model}, accuracy score: {score}, session: {session_num}")
+            plt.title(f"Linear Regression Model, Pearson's R: {score}, Session: {session_num}")
         else:
-            plt.title(f"{model}, accuracy score: {score}")
+            plt.title(f"Linear Regression Model, Pearson's R: {score}")
         plt.show()
         
+
+###----------------------- PARSING FUNCTIONS ------------------###
+    def parse_array_string(i,s):
+        return  np.fromstring(s[1:-1], sep=' ')
+
+    def parse_table(session):
+        # Apply the parsing function to each cell in the table
+        parsed_table = [parse_array_string(i,subject) for i,subject in enumerate(session) if not pd.isna(subject)]
+        # Convert the parsed table into a 2-dimensional NumPy array
+        return np.array(parsed_table)
 
     ###---------------------TEST-----------------------------###
 
@@ -298,6 +329,7 @@ def runApp():
     #clustering models
     kmeans = sklearn.cluster.KMeans(n_clusters=2, random_state=0)
 
+    kmeans_predictions = []
     if run_on_processed_data:
         #run kmeans
         model = kmeans
@@ -312,7 +344,13 @@ def runApp():
         for i in range(5):
             logistic_X_train, logistic_X_test, logistic_y_train, logistic_y_test = \
                 train_test_split(last_minus_first_session_success_rates, kmeans_predictions, test_size=0.3)
-            logistic_predictions = regression(model, logistic_X_train, logistic_y_train, logistic_X_test)
+            logistic_predictions = regression(model, logistic_X_train, logistic_y_train, logistic_X_test)           
+            # forest_importances = pd.Series(importances, index=feature_names)
+            # fig, ax = plt.subplots()
+            # forest_importances.plot.bar(yerr=std, ax=ax)
+            # ax.set_title("Feature importances using MDI")
+            # ax.set_ylabel("Mean decrease in impurity")
+            # fig.tight_layout()
             logistic_y_test = np.array(logistic_y_test).reshape(-1, 1)
             logistic_predictions = np.array(logistic_predictions).reshape(-1, 1)
             # model_score = model.score(logistic_y_test, logistic_predictions)
@@ -332,43 +370,53 @@ def runApp():
         print(score)
         predictions_avg = predictions_avg/5
         success_avg = success_avg/5
-
-
         last_minus_first_session_success_rates = np.array(last_minus_first_session_success_rates).reshape(-1, 1)
-        plot_kmeans("Kmeans", kmeans_predictions, max_score, last_minus_first_session_success_rates)
-        # plot_kmeans(model, best_predictions, max_score, best_success)
-        # plot_kmeans(model, predictions_avg, score, success_avg)
+        plot_kmeans(kmeans_predictions, max_score, last_minus_first_session_success_rates)
 
     else: #run on unprocessed data
         # 1. linear regression - each subject is a mean mental strategy vector and mean success rate
         model = linear_regression_model
-        unprocessed_X_train, unprocessed_X_test, unprocessed_y_train, unprocessed_y_test = \
-            train_test_split(unprocessed_subject_features, unprocessed_subject_success_rates, test_size=0.3)
-        unprocessed_predictions = regression(model, unprocessed_X_train, unprocessed_y_train, unprocessed_X_test)
-        score = r2_accuracy_score(unprocessed_y_test, unprocessed_predictions)
-        plot_linear("Linear Regression Model", unprocessed_y_test, unprocessed_predictions, score)
+        mean_pearson_r = 0
+        for i in range(5):
+            unprocessed_X_train, unprocessed_X_test, unprocessed_y_train, unprocessed_y_test = \
+                train_test_split(unprocessed_subject_features, unprocessed_subject_success_rates, test_size=0.3)
+            unprocessed_predictions = regression(model, unprocessed_X_train, unprocessed_y_train, unprocessed_X_test)
+            score = sklearn.feature_selection.r_regression(unprocessed_y_test, unprocessed_predictions)
+            mean_pearson_r += score
+        mean_pearson_r /= 5
+        plot_linear(unprocessed_y_test, unprocessed_predictions, mean_pearson_r)
     
         # 2. 6 linear regressions - each subject is a mean mental strategy vector and success rate for each session
-        # Convert array string cells to actual NumPy arrays
-        def parse_array_string(i,s):
-            return  np.fromstring(s[1:-1], sep=' ')
-
-        def parse_table(session):
-            # Apply the parsing function to each cell in the table
-            parsed_table = [parse_array_string(i,subject) for i,subject in enumerate(session) if not pd.isna(subject)]
-            # Convert the parsed table into a 2-dimensional NumPy array
-            return np.array(parsed_table)
 
         model = linear_regression_model
         for session_num in range(1,num_of_sessions + 1):
-            # print(unprocessed_subjects_mean_sessions.iloc[session_num-1])
-            session = parse_table(unprocessed_subjects_mean_sessions.iloc[session_num-1])
-            success = unprocessed_subjects_mean_sessions_success.iloc[session_num-1].dropna()
-            unprocessed_X_train, unprocessed_X_test, unprocessed_y_train, unprocessed_y_test = \
-                train_test_split(session, success, test_size=0.3)
-            unprocessed_predictions = regression(model, \
-            unprocessed_X_train, unprocessed_y_train, unprocessed_X_test)
-            score = r2_accuracy_score(unprocessed_y_test, unprocessed_predictions)
-            plot_linear("Linear Regression Model", unprocessed_y_test, unprocessed_predictions, score, session_num)
+            mean_pearson_r = 0
+            for i in range(5):
+                # print(unprocessed_subjects_mean_sessions.iloc[session_num-1])
+                session = parse_table(unprocessed_subjects_mean_sessions.iloc[session_num-1])
+                success = unprocessed_subjects_mean_sessions_success.iloc[session_num-1].dropna()
+                unprocessed_X_train, unprocessed_X_test, unprocessed_y_train, unprocessed_y_test = \
+                    train_test_split(session, success, test_size=0.3)
+                unprocessed_predictions = regression(model, \
+                unprocessed_X_train, unprocessed_y_train, unprocessed_X_test)
+                unprocessed_y_test = np.array(unprocessed_y_test).reshape(-1,1)
+                unprocessed_predictions = np.array(unprocessed_predictions).reshape(-1,1)
+                score = sklearn.feature_selection.r_regression(unprocessed_y_test, unprocessed_predictions)
+                mean_pearson_r += score
+            mean_pearson_r /= 5
+            plot_linear(unprocessed_y_test, unprocessed_predictions, mean_pearson_r, session_num)
+
+###---------------------- EXPLORATORY PART -----------------###
+
+    
+    kmeans_successful = [processed_subjects[i] for i in range(len(processed_subjects)) if kmeans_predictions[subject]]
+    kmeans_unsuccessful = [processed_subjects[i] for i in range(len(processed_subjects)) if not kmeans_predictions[subject]]
+    kmeans_successful.to_csv(kmeans_successful_file_path, index=False,)
+    kmeans_unsuccessful.to_csv(kmeans_unsuccessful_file_path, index=False,)
+    print(f"successfule mean vector: {meanVectorForEachSession(kmeans_successful)}")
+    print(f"unsuccessfule mean vector: {meanVectorForEachSession(kmeans_unsuccessful)}")
+
+
+
 
 runApp()

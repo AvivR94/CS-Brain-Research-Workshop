@@ -3,19 +3,20 @@ from tkinter import IntVar
 from tkinter import filedialog
 import json
 import os
-from mentalStrategiesProject import runApp
+
+def saveToFile(filename, method='return path', content=None):
+  script_dir = os.path.dirname(__file__)  # Directory of the script
+  abs_file_path = os.path.join(script_dir, filename)
+  if (method == 'json'):
+    with open(abs_file_path, 'w') as file:
+      json.dump(content, file)
+  else:
+     return abs_file_path
+
 
 def runGUI():
   print("Running GUI...")
   # Save variables to JSON file
-  def save_variables(variables_dict, filename):
-    script_dir = os.path.dirname(__file__)  # Directory of the script
-    abs_file_path = os.path.join(script_dir, filename)
-
-    with open(abs_file_path, 'w') as file:
-      json.dump(variables_dict, file)
-    # with open(filename, 'w') as file:
-    #   json.dump(variables_dict, file)
 
   def choose_directory():
     file_path = filedialog.askopenfilename()  # Open directory selection dialog
@@ -35,6 +36,12 @@ def runGUI():
           
   app = tk.Tk()
   app.title("Variable Input GUI")
+
+  num_of_sessions_label = tk.Label(app, text="Number of Sessions:")
+  num_of_sessions_entry = tk.Entry(app)
+
+  num_of_runs_per_session_label = tk.Label(app, text="Number of Runs per Session:")
+  num_of_runs_per_session_entry = tk.Entry(app)
 
   success_cols_names_label = tk.Label(app, text="success columns names:")
   success_cols_names_entry = tk.Entry(app)
@@ -62,6 +69,8 @@ def runGUI():
 
   def submit():
 
+    num_of_sessions = num_of_sessions_entry.get()
+    num_of_runs_per_session = num_of_runs_per_session_entry.get()
     subject_num_col_name = subject_num_col_name_entry.get()
     session_num_col_name = session_num_col_name_entry.get()
     data_preprocessed = data_preprocessed_var.get()
@@ -70,6 +79,8 @@ def runGUI():
     data_file_path = data_file_path_entry.get()
     success_cols_names = success_cols_names_entry.get()
       
+    print("num_of_sessions:", num_of_sessions)
+    print("num_of_runs_per_session:", num_of_runs_per_session)
     print("subject_num_col_name:", subject_num_col_name)
     print("session_num_col_name:", session_num_col_name)
     print("data_preprocessed:", data_preprocessed)
@@ -79,6 +90,8 @@ def runGUI():
     print("success_cols_names:", success_cols_names)
 
     variables_dict = {
+      "num_of_sessions": num_of_sessions,
+      "num_of_runs_per_session": num_of_runs_per_session,
       "success_cols_names": success_cols_names,
       "subject_num_col_name": subject_num_col_name,
       "session_num_col_name": session_num_col_name,
@@ -87,7 +100,7 @@ def runGUI():
       "correlation_threshold": correlation_threshold,
       "data_file_path": data_file_path,
     }
-    save_variables(variables_dict, "user_variables.json")  # Save variables to JSON file
+    saveToFile("user_variables.json", 'json', variables_dict)  # Save variables to JSON file
     app.destroy()  # Close the GUI window
 
   submit_button = tk.Button(app, text="Submit", command=submit)
@@ -97,7 +110,13 @@ def runGUI():
   data_file_path_entry.pack(pady=5)
   choose_data_file_path_button.pack()
 
-  success_cols_names_label.pack(pady=5)
+  num_of_sessions_label.pack(pady=5)
+  num_of_sessions_entry.pack()
+
+  num_of_runs_per_session_label.pack()
+  num_of_runs_per_session_entry.pack()
+
+  success_cols_names_label.pack()
   success_cols_names_entry.pack()
 
   subject_num_col_name_label.pack()
@@ -115,3 +134,4 @@ def runGUI():
   submit_button.pack(pady=10)
 
   app.mainloop()
+# runGUI()
