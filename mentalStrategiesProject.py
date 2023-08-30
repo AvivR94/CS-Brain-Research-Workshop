@@ -258,6 +258,22 @@ def runApp():
 
     ###-------03---PROCESSING BETWEEN SUBJECT: PREDICTION MODELS---------###
 
+    ###----------------------RANDOM FOREST MODEL------------------------###
+        # def random_forest(model, x_train, y_train, x_test):
+        #     feature_names = [f"feature {i}" for i in range(x_train.shape[1])]
+        #     model.fit(x_train, y_train)
+        #     importances = model.feature_importances_
+        #     std = np.std([tree.feature_importances_ for tree in model.estimators_], axis=0)
+        #     print(std)
+        #     forest_importances = pd.Series(importances)
+        #     fig, ax = plt.subplots()
+        #     forest_importances.plot.bar(yerr=std, ax=ax)
+        #     ax.set_title("Feature importances using MDI")
+        #     ax.set_ylabel("Mean decrease in impurity")
+        #     # fig.tight_layout()
+        #     plt.show()
+        #     predictions = model.predict(x_test)
+        #     return predictions
     ###----------------------REGRESSION MODELS------------------------###
 
     def regression(model, x_train, y_train, x_test):
@@ -270,19 +286,6 @@ def runApp():
     def clustering(model, x):
         predictions = model.fit_predict(x)
         return predictions
-
-    # ###---------------------ACCURACY FUNCTION----------------------------###
-
-    # def r2_accuracy_score(y_test, predictions):
-    #     # Calculate R-squared
-    #     from scipy.stats import pearsonr
-    #     print(y_test)
-    #     print(predictions)
-    #     score = pearsonr(y_test, predictions)
-    #     # Scale R-squared to the range [0, 1]
-    #     #scaler = MinMaxScaler(feature_range=(0, 1))
-    #     #score = scaler.fit_transform([[score]])[0][0]
-    #     return score
 
     ###----------------------PLOT RESULTS------------------------###
     def plot_kmeans(predictions, score, y_test):
@@ -342,32 +345,21 @@ def runApp():
         success_avg = 0
         last_minus_first_session_success_rates = np.array(last_minus_first_session_success_rates).reshape(-1, 1)
         for i in range(5):
-            logistic_X_train, logistic_X_test, logistic_y_train, logistic_y_test = \
+            forest_x_train, forest_x_test, forest_y_train, forest_y_test = \
                 train_test_split(last_minus_first_session_success_rates, kmeans_predictions, test_size=0.3)
-            logistic_predictions = regression(model, logistic_X_train, logistic_y_train, logistic_X_test)           
-            # forest_importances = pd.Series(importances, index=feature_names)
-            # fig, ax = plt.subplots()
-            # forest_importances.plot.bar(yerr=std, ax=ax)
-            # ax.set_title("Feature importances using MDI")
-            # ax.set_ylabel("Mean decrease in impurity")
-            # fig.tight_layout()
-            logistic_y_test = np.array(logistic_y_test).reshape(-1, 1)
-            logistic_predictions = np.array(logistic_predictions).reshape(-1, 1)
-            # model_score = model.score(logistic_y_test, logistic_predictions)
-            model_score = accuracy_score(logistic_y_test, logistic_predictions)
-            print(f"i:{i}")
-            # print(f"x train:{logistic_X_train}\n y train:{logistic_y_train}\n")
-            print(f"x test:{logistic_X_test}\n y test:{logistic_y_test}\n predictions:{logistic_predictions}")
-            print(f"model score: {model_score}")
+            # print(f'forest x train: {forest_x_train}\n forest y tarin: {forest_y_train}')
+            forest_predictions = regression(model, forest_x_train, forest_y_train, forest_x_test) 
+            forest_y_test = np.array(forest_y_test).reshape(-1, 1)
+            forest_predictions = np.array(forest_predictions).reshape(-1, 1)
+            model_score = accuracy_score(forest_y_test, forest_predictions)
             if model_score > max_score:
                 max_score = model_score
-                best_predictions = logistic_predictions
-                best_success = logistic_X_test
+                best_predictions = forest_predictions
+                best_success = forest_y_test
             score += model_score
-            predictions_avg += logistic_predictions
-            success_avg += logistic_X_test
+            predictions_avg += forest_predictions
+            success_avg += forest_y_test
         score = score/5
-        print(score)
         predictions_avg = predictions_avg/5
         success_avg = success_avg/5
         last_minus_first_session_success_rates = np.array(last_minus_first_session_success_rates).reshape(-1, 1)
@@ -406,15 +398,37 @@ def runApp():
             mean_pearson_r /= 5
             plot_linear(unprocessed_y_test, unprocessed_predictions, mean_pearson_r, session_num)
 
-###---------------------- EXPLORATORY PART -----------------###
+###---------------------- FEATURE IMPORTANCE -----------------###
 
     
-    kmeans_successful = [processed_subjects[i] for i in range(len(processed_subjects)) if kmeans_predictions[subject]]
-    kmeans_unsuccessful = [processed_subjects[i] for i in range(len(processed_subjects)) if not kmeans_predictions[subject]]
-    kmeans_successful.to_csv(kmeans_successful_file_path, index=False,)
-    kmeans_unsuccessful.to_csv(kmeans_unsuccessful_file_path, index=False,)
-    print(f"successfule mean vector: {meanVectorForEachSession(kmeans_successful)}")
-    print(f"unsuccessfule mean vector: {meanVectorForEachSession(kmeans_unsuccessful)}")
+    # kmeans_successful = [processed_subjects[i] for i in range(len(processed_subjects)) if kmeans_predictions[subject]]
+    # kmeans_unsuccessful = [processed_subjects[i] for i in range(len(processed_subjects)) if not kmeans_predictions[subject]]
+    # kmeans_successful.to_csv(kmeans_successful_file_path, index=False,)
+    # kmeans_unsuccessful.to_csv(kmeans_unsuccessful_file_path, index=False,)
+    # print(f"successfule mean vector: {meanVectorForEachSession(kmeans_successful)}")
+    # print(f"unsuccessfule mean vector: {meanVectorForEachSession(kmeans_unsuccessful)}")
+    features_mean_differences = []
+    features_total_variance = []
+    processed_subjects = np.array(processed_subjects)
+    for feature in range(processed_subjects.shape[1]):
+        mean1 = processed_subjects[kmeans.labels_==0][:,feature].mean()
+        mean2 = processed_subjects[kmeans.labels_==1][:,feature].mean()
+        
+        var1 = processed_subjects[kmeans.labels_==0][:,feature].var()
+        var2 = processed_subjects[kmeans.labels_==1][:,feature].var()
+    
+        features_mean_differences.append(round(abs(mean1-mean2),3))
+        features_total_variance.append(round((var1+var2),3))
+
+    barWidth = 0.25
+    br1 = np.arange(len(features_mean_differences))
+    br2 = [x + barWidth for x in br1]
+    plt.bar(br1, features_mean_differences, color='red', width=barWidth, label='Mean Difference')
+    plt.bar(br2, features_total_variance, color='blue', width=0.25, label='Total Variance')
+    plt.xlabel('Features')
+    plt.title('Feature Importance')
+    plt.legend()
+    plt.show()
 
 
 
