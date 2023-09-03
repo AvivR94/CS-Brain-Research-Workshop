@@ -9,4 +9,5 @@ Prof. Talma Hendler, M.D. Ph.D.
 Guy Gurevich, Ph.D.
 
 Run App.py to start the application. A GUI will open, and upon submission, relevant graphs will be plotted.
+
 Full details about this project can be found under the PDF file attached in this repository.
