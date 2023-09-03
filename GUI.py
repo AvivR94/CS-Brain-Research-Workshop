@@ -77,16 +77,6 @@ def runGUI():
     correlation_threshold = correlation_threshold_entry.get()
     data_file_path = data_file_path_entry.get()
     success_cols_names = success_cols_names_entry.get()
-      
-    print("num_of_sessions:", num_of_sessions)
-    print("num_of_runs_per_session:", num_of_runs_per_session)
-    print("subject_num_col_name:", subject_num_col_name)
-    print("session_num_col_name:", session_num_col_name)
-    print("data_preprocessed:", data_preprocessed)
-    print("run_on_processed_data:", run_on_processed_data)
-    print("correlation_threshold:", correlation_threshold)
-    print("data_file_path:", data_file_path)
-    print("success_cols_names:", success_cols_names)
 
     variables_dict = {
       "num_of_sessions": num_of_sessions,
