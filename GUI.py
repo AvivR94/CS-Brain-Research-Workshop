@@ -15,7 +15,6 @@ def saveToFile(filename, method='return path', content=None):
 
 
 def runGUI():
-  print("Running GUI...")
   # Save variables to JSON file
 
   def choose_directory():
@@ -134,4 +133,3 @@ def runGUI():
   submit_button.pack(pady=10)
 
   app.mainloop()
-# runGUI()

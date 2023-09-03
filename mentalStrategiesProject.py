@@ -24,7 +24,6 @@ from sklearn.preprocessing import MinMaxScaler
 from GUI import saveToFile
 
 def runApp():
-    print("Start running app...")
     def load_variables(filename):
         script_dir = os.path.dirname(__file__)  # Directory of the script
         abs_file_path = os.path.join(script_dir, filename)
@@ -32,49 +31,29 @@ def runApp():
             variables_dict = json.load(file)
             return variables_dict
 
-    # GUI variables
-    # loaded_variables = load_variables("user_variables.json")
-    # subject_num_col_name = loaded_variables["subject_num_col_name"]
-    # session_num_col_name = loaded_variables["session_num_col_name"]
-    # success_cols_names = loaded_variables["success_cols_names"]
-    # correlation_threshold = loaded_variables["correlation_threshold"]
-    # data_preprocessed = loaded_variables["data_preprocessed"]
-    # run_on_processed_data = loaded_variables["run_on_processed_data"]
-    # num_of_sessions = loaded_variables["num_of_sessions"]
-    # num_of_runs_per_session = loaded_variables["num_of_runs_per_session"]
-    # data_file_path = saveToFile('mental_strategies_data.csv')
-    # filtered_data_file_path = saveToFile('filtered_dataset.csv')
-    # subject_features_file_path = saveToFile('subjects_features.csv')
-    # last_session_success_rates_file_path = saveToFile('last_session_success_rates.csv')
-    # last_minus_first_session_success_rates_file_path = saveToFile('last_minus_first_session_success_rates.csv')
-    # unprocessed_subject_features_file_path = saveToFile('unprocessed_subject_features.csv')
-    # unprocessed_subjects_mean_sessions_file_path = saveToFile('unprocessed_subjects_mean_sessions.csv')
-    # unprocessed_subject_success_rates_file_path = saveToFile('unprocessed_subject_success_rates.csv')
-    # unprocessed_subjects_mean_sessions_success_file_path = saveToFile('unprocessed_subjects_mean_sessions_success_file_path.csv')
-    # kmeans_successful_file_path = saveToFile('kmeans_successful.csv')
-    # kmeans_unsuccessful_file_path = saveToFile('kmeans_unsuccessful.csv')
-    ###-----------------SET VARIABLES-----------------------------------###             
-    data_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/mental_strategies_data.csv"
-    success_cols_names = "Qhat"
-    subject_num_col_name = "sub_num"
-    session_num_col_name = "session_num"
-    correlation_threshold = 0.75
-    filtered_data_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/filtered_dataset.csv"
-    data_preprocessed = 1
-    subject_features_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/subjects_features.csv"
-    last_session_success_rates_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/last_session_success_rates.csv"
-    last_minus_first_session_success_rates_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/last_minus_first_session_success_rates.csv"
-    run_on_processed_data = 0
-    unprocessed_subject_features_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/unprocessed_subject_features.csv"
-    unprocessed_subjects_mean_sessions_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/unprocessed_subjects_mean_sessions.csv"
-    unprocessed_subject_success_rates_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/unprocessed_subject_success_rates.csv"
-    unprocessed_subjects_mean_sessions_success_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshopunprocessed_subjects_mean_sessions_success_file_path.csv"
-    kmeans_successful_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/kmeans_successful.csv"
-    kmeans_unsuccessful_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/kmeans_unsuccessful.csv"
-    num_of_sessions = 6
-    num_of_runs_per_session = 5
-    ###-----------------LOAD DATA-----------------------------------###
 
+    ###-----------------LOAD DATA-----------------------------------###
+    # GUI variables
+    loaded_variables = load_variables("user_variables.json")
+    subject_num_col_name = loaded_variables["subject_num_col_name"]
+    session_num_col_name = loaded_variables["session_num_col_name"]
+    success_cols_names = loaded_variables["success_cols_names"]
+    correlation_threshold = float(loaded_variables["correlation_threshold"])
+    data_preprocessed = int(loaded_variables["data_preprocessed"])
+    run_on_processed_data = int(loaded_variables["run_on_processed_data"])
+    num_of_sessions = int(loaded_variables["num_of_sessions"])
+    num_of_runs_per_session = int(loaded_variables["num_of_runs_per_session"])
+    data_file_path = saveToFile('mental_strategies_data.csv')
+    filtered_data_file_path = saveToFile('filtered_dataset.csv')
+    subject_features_file_path = saveToFile('subjects_features.csv')
+    last_session_success_rates_file_path = saveToFile('last_session_success_rates.csv')
+    last_minus_first_session_success_rates_file_path = saveToFile('last_minus_first_session_success_rates.csv')
+    unprocessed_subject_features_file_path = saveToFile('unprocessed_subject_features.csv')
+    unprocessed_subjects_mean_sessions_file_path = saveToFile('unprocessed_subjects_mean_sessions.csv')
+    unprocessed_subject_success_rates_file_path = saveToFile('unprocessed_subject_success_rates.csv')
+    unprocessed_subjects_mean_sessions_success_file_path = saveToFile('unprocessed_subjects_mean_sessions_success_file_path.csv')
+    kmeans_successful_file_path = saveToFile('kmeans_successful.csv')
+    kmeans_unsuccessful_file_path = saveToFile('kmeans_unsuccessful.csv')
     # read data set
     data = pd.read_csv(data_file_path)
     df = pd.DataFrame(data)
@@ -198,8 +177,8 @@ def runApp():
                 subject_sessions_success = subject_sessions_success.groupby([session_num_col_name])
             
             session_nums = subject_sessions_success.groups.keys()
-            first_session_mean = subject_sessions_success.get_group(min(session_nums))["Qhat"].mean()
-            last_session_mean = subject_sessions_success.get_group(max(session_nums))["Qhat"].mean()
+            first_session_mean = subject_sessions_success.get_group(min(session_nums))[success_cols_names].mean()
+            last_session_mean = subject_sessions_success.get_group(max(session_nums))[success_cols_names].mean()
             last_session_success_rates.append(last_session_mean)
             last_minus_first_session_success_rates.append(last_session_mean - first_session_mean)
 
@@ -210,8 +189,8 @@ def runApp():
                 session = session_tuple[1].drop([session_num_col_name, subject_num_col_name], axis="columns")
                 session_num = session_tuple[0][0]
                 session_success = subject_sessions_success.get_group(session_num)
-                unprocessed_subjects_mean_sessions_success[session_num-1].append(session_success["Qhat"].mean())
-                mean_session_success_rates.append(session_success["Qhat"].mean())
+                unprocessed_subjects_mean_sessions_success[session_num-1].append(session_success[success_cols_names].mean())
+                mean_session_success_rates.append(session_success[success_cols_names].mean())
                 # session has 1 run -> don't perform cosine within session
                 if len(session) >= 2:
                     cosineWithinSubject(
@@ -372,7 +351,6 @@ def runApp():
             mean_pearson_r = 0
             scores = []
             for i in range(5):
-                # print(unprocessed_subjects_mean_sessions.iloc[session_num-1])
                 session = parse_table(unprocessed_subjects_mean_sessions.iloc[session_num-1])
                 success = unprocessed_subjects_mean_sessions_success.iloc[session_num-1].dropna()
                 unprocessed_X_train, unprocessed_X_test, unprocessed_y_train, unprocessed_y_test = \
@@ -433,8 +411,3 @@ def runApp():
         plt.title('Feature Significance')
         plt.legend()
         plt.show()
-
-
-
-
-runApp()

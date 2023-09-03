@@ -1,1 +1,1 @@
-{"subject_num_col_name": "", "session_num_col_name": "", "data_preprocessed": 0, "run_on_processed_data": 0, "correlation_threshold": "", "data_file_path": ""}
+{"num_of_sessions": "6", "num_of_runs_per_session": "5", "success_cols_names": "Qhat", "subject_num_col_name": "sub_num", "session_num_col_name": "session_num", "data_preprocessed": 1, "run_on_processed_data": 1, "correlation_threshold": "0.75", "data_file_path": "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/mental_strategies_data.csv"}
