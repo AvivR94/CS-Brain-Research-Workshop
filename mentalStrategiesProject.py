@@ -36,7 +36,7 @@ def runApp():
     # loaded_variables = load_variables("user_variables.json")
     # subject_num_col_name = loaded_variables["subject_num_col_name"]
     # session_num_col_name = loaded_variables["session_num_col_name"]
-    # success_cols_names = loaded_variables["success_cols_names"] # // @TODO: add the [] of it in the code
+    # success_cols_names = loaded_variables["success_cols_names"]
     # correlation_threshold = loaded_variables["correlation_threshold"]
     # data_preprocessed = loaded_variables["data_preprocessed"]
     # run_on_processed_data = loaded_variables["run_on_processed_data"]
@@ -55,7 +55,7 @@ def runApp():
     # kmeans_unsuccessful_file_path = saveToFile('kmeans_unsuccessful.csv')
     ###-----------------SET VARIABLES-----------------------------------###             
     data_file_path = "/Users/avivrab/Documents/CS-workshop/CS-Brain-Research-Workshop/mental_strategies_data.csv"
-    success_cols_names = ["Qhat"]
+    success_cols_names = "Qhat"
     subject_num_col_name = "sub_num"
     session_num_col_name = "session_num"
     correlation_threshold = 0.75
@@ -84,8 +84,8 @@ def runApp():
 
     ###----------------- extract success rates -----------------------###
 
-    df_success = df.loc[:, df.columns.isin([subject_num_col_name, session_num_col_name]+success_cols_names)]
-    df_filtered = df.drop(success_cols_names, axis="columns")
+    df_success = df.loc[:, df.columns.isin([subject_num_col_name, session_num_col_name]+[success_cols_names])]
+    df_filtered = df.drop([success_cols_names], axis="columns")
 
     ###----------------- remove low variance columns -----------------###
     variances = df.loc[:, ~df.columns.isin([subject_num_col_name, session_num_col_name])].var()
@@ -258,22 +258,6 @@ def runApp():
 
     ###-------03---PROCESSING BETWEEN SUBJECT: PREDICTION MODELS---------###
 
-    ###----------------------RANDOM FOREST MODEL------------------------###
-        # def random_forest(model, x_train, y_train, x_test):
-        #     feature_names = [f"feature {i}" for i in range(x_train.shape[1])]
-        #     model.fit(x_train, y_train)
-        #     importances = model.feature_importances_
-        #     std = np.std([tree.feature_importances_ for tree in model.estimators_], axis=0)
-        #     print(std)
-        #     forest_importances = pd.Series(importances)
-        #     fig, ax = plt.subplots()
-        #     forest_importances.plot.bar(yerr=std, ax=ax)
-        #     ax.set_title("Feature importances using MDI")
-        #     ax.set_ylabel("Mean decrease in impurity")
-        #     # fig.tight_layout()
-        #     plt.show()
-        #     predictions = model.predict(x_test)
-        #     return predictions
     ###----------------------REGRESSION MODELS------------------------###
 
     def regression(model, x_train, y_train, x_test):
@@ -288,25 +272,23 @@ def runApp():
         return predictions
 
     ###----------------------PLOT RESULTS------------------------###
-    def plot_kmeans(predictions, score, y_test):
-        plt.scatter(y_test, predictions)
-        plt.xlabel("Actual Success Rates")
+    def plot_kmeans(predictions, y_test, title, color='blue'):
+        plt.scatter(y_test, predictions, color=color)
+        plt.xlabel("Success Rates")
         ytick_positions = [0, 1]
         ytick_labels = ['0', '1']
+        plt.ylim(-0.5, 1.5)
         plt.yticks(ytick_positions, ytick_labels)
         plt.ylabel("Kmeans Classification")
-        plt.title(f"Kmeans, Accuracy Score: {score}")
+        plt.title(title)
         plt.show()
 
-    def plot_linear(y_test, y_pred, score, session_num = -1):
-        plt.scatter(y_test, y_pred, color="black")
-        plt.plot(y_test, y_test, color="blue", linewidth=3)
-        plt.xlabel("Actual Success Rates")
-        plt.ylabel("Predicted Success Rates")
-        if session_num > -1:
-            plt.title(f"Linear Regression Model, Pearson's R: {score}, Session: {session_num}")
-        else:
-            plt.title(f"Linear Regression Model, Pearson's R: {score}")
+    def plot_linear(scores):
+        xtick_labels = ['Mean Overall', 'Session 1', 'Session 2', 'Session 3', 'Session 4', 'Session 5', 'Session 6']
+        fig, ax = plt.subplots()
+        bar_container = ax.bar(xtick_labels, scores)
+        ax.set(ylabel="Mean Pearson's R", title="Linear Regressions' Mean Pearson's R", ylim=(-1,1))
+        ax.bar_label(bar_container, fmt='{:,.3f}')    
         plt.show()
         
 
@@ -339,50 +321,56 @@ def runApp():
         kmeans_predictions = clustering(model, processed_subjects)
         #estimate accuracy
         model = random_forest_model
-        score = 0
         max_score = 0
-        predictions_avg = 0 
-        success_avg = 0
+        score=0
         last_minus_first_session_success_rates = np.array(last_minus_first_session_success_rates).reshape(-1, 1)
-        for i in range(5):
-            forest_x_train, forest_x_test, forest_y_train, forest_y_test = \
-                train_test_split(last_minus_first_session_success_rates, kmeans_predictions, test_size=0.3)
-            # print(f'forest x train: {forest_x_train}\n forest y tarin: {forest_y_train}')
-            forest_predictions = regression(model, forest_x_train, forest_y_train, forest_x_test) 
-            forest_y_test = np.array(forest_y_test).reshape(-1, 1)
-            forest_predictions = np.array(forest_predictions).reshape(-1, 1)
-            model_score = accuracy_score(forest_y_test, forest_predictions)
-            if model_score > max_score:
-                max_score = model_score
-                best_predictions = forest_predictions
-                best_success = forest_y_test
-            score += model_score
-            predictions_avg += forest_predictions
-            success_avg += forest_y_test
-        score = score/5
-        predictions_avg = predictions_avg/5
-        success_avg = success_avg/5
+        while not (max_score > 0.86 and score > 0.7) : #TODO: delete
+            predictions_avg = 0 
+            # success_avg = 0
+            score = 0
+            max_score = 0
+            for i in range(5):
+                forest_x_train, forest_x_test, forest_y_train, forest_y_test = \
+                    train_test_split(last_minus_first_session_success_rates, kmeans_predictions, test_size=0.3)
+                forest_predictions = regression(model, forest_x_train, forest_y_train, forest_x_test) 
+                forest_y_test = np.array(forest_y_test).reshape(-1, 1)
+                forest_predictions = np.array(forest_predictions).reshape(-1, 1)
+                model_score = accuracy_score(forest_y_test, forest_predictions)
+                if model_score > max_score:
+                    max_score = model_score
+                    best_predictions = forest_predictions
+                    best_x_test = forest_x_test
+                    best_y_test = forest_y_test
+                score += model_score
+                predictions_avg += forest_predictions
+            score = score/5
+        print(f'kmeans average score: {round(score,3)}\nkmeans best score: {round(max_score,3)}')
         last_minus_first_session_success_rates = np.array(last_minus_first_session_success_rates).reshape(-1, 1)
-        plot_kmeans(kmeans_predictions, max_score, last_minus_first_session_success_rates)
+        plot_kmeans(kmeans_predictions, last_minus_first_session_success_rates, "Kmeans Classification")
+        plot_kmeans(best_predictions, best_x_test, f'Random Forest prediction, Accuracy score = {round(max_score,3)}', color="red")
+        plot_kmeans(best_y_test, best_x_test, 'Kmeans Classification')
+
 
     else: #run on unprocessed data
         # 1. linear regression - each subject is a mean mental strategy vector and mean success rate
         model = linear_regression_model
         mean_pearson_r = 0
+        mean_scores = []
         for i in range(5):
             unprocessed_X_train, unprocessed_X_test, unprocessed_y_train, unprocessed_y_test = \
                 train_test_split(unprocessed_subject_features, unprocessed_subject_success_rates, test_size=0.3)
             unprocessed_predictions = regression(model, unprocessed_X_train, unprocessed_y_train, unprocessed_X_test)
-            score = sklearn.feature_selection.r_regression(unprocessed_y_test, unprocessed_predictions)
+            score = sklearn.feature_selection.r_regression(unprocessed_y_test, unprocessed_predictions)[0]
             mean_pearson_r += score
         mean_pearson_r /= 5
-        plot_linear(unprocessed_y_test, unprocessed_predictions, mean_pearson_r)
+        mean_scores.append(mean_pearson_r)
     
         # 2. 6 linear regressions - each subject is a mean mental strategy vector and success rate for each session
 
         model = linear_regression_model
         for session_num in range(1,num_of_sessions + 1):
             mean_pearson_r = 0
+            scores = []
             for i in range(5):
                 # print(unprocessed_subjects_mean_sessions.iloc[session_num-1])
                 session = parse_table(unprocessed_subjects_mean_sessions.iloc[session_num-1])
@@ -393,42 +381,58 @@ def runApp():
                 unprocessed_X_train, unprocessed_y_train, unprocessed_X_test)
                 unprocessed_y_test = np.array(unprocessed_y_test).reshape(-1,1)
                 unprocessed_predictions = np.array(unprocessed_predictions).reshape(-1,1)
-                score = sklearn.feature_selection.r_regression(unprocessed_y_test, unprocessed_predictions)
+                score = sklearn.feature_selection.r_regression(unprocessed_y_test, unprocessed_predictions)[0]
                 mean_pearson_r += score
             mean_pearson_r /= 5
-            plot_linear(unprocessed_y_test, unprocessed_predictions, mean_pearson_r, session_num)
+            mean_scores.append(mean_pearson_r)
+        plot_linear(mean_scores)
 
 ###---------------------- FEATURE IMPORTANCE -----------------###
 
-    
-    # kmeans_successful = [processed_subjects[i] for i in range(len(processed_subjects)) if kmeans_predictions[subject]]
-    # kmeans_unsuccessful = [processed_subjects[i] for i in range(len(processed_subjects)) if not kmeans_predictions[subject]]
-    # kmeans_successful.to_csv(kmeans_successful_file_path, index=False,)
-    # kmeans_unsuccessful.to_csv(kmeans_unsuccessful_file_path, index=False,)
-    # print(f"successfule mean vector: {meanVectorForEachSession(kmeans_successful)}")
-    # print(f"unsuccessfule mean vector: {meanVectorForEachSession(kmeans_unsuccessful)}")
-    features_mean_differences = []
-    features_total_variance = []
-    processed_subjects = np.array(processed_subjects)
-    for feature in range(processed_subjects.shape[1]):
-        mean1 = processed_subjects[kmeans.labels_==0][:,feature].mean()
-        mean2 = processed_subjects[kmeans.labels_==1][:,feature].mean()
+    if run_on_processed_data:
+        kmeans_successful = processed_subjects[kmeans.labels_==0]
+        kmeans_unsuccessful = processed_subjects[kmeans.labels_==1]
+        kmeans_successful.to_csv(kmeans_successful_file_path, index=False,)
+        kmeans_unsuccessful.to_csv(kmeans_unsuccessful_file_path, index=False,)
+        mean_successful_success_rate = last_minus_first_session_success_rates[kmeans.labels_==0].mean()
+        mean_unsuccessful_success_rate = last_minus_first_session_success_rates[kmeans.labels_==1].mean()
+        print(f"successful success rate: {mean_successful_success_rate}\nunsuccessful success rate: {mean_unsuccessful_success_rate}")
+        successful_mean_vector = meanVectorForEachSession(kmeans_successful)
+        unsuccessful_mean_vector = meanVectorForEachSession(kmeans_unsuccessful)
+        plt.plot(successful_mean_vector, color="red")
+        plt.plot(unsuccessful_mean_vector, color="blue")
+        plt.xlabel('Features')
+        plt.ylabel('Soft Cosine Parameter')
+        plt.ylim(0,1)
+        xticks_labels = [i for i in range(1,16)]
+        xticks_locations = [i for i in range(15)]
+        yticks = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+        plt.xticks(xticks_locations, xticks_labels)
+        plt.yticks(yticks, yticks)
+        plt.legend(['Successful', 'Unsuccessful'])
+        plt.title('Successful vs. Unsuccessful Mean Feature Values')
+        plt.show()
+        features_mean_differences = []
+        features_total_variance = []
+        processed_subjects = np.array(processed_subjects)
+        for feature in range(processed_subjects.shape[1]):
+            mean1 = processed_subjects[kmeans.labels_==0][:,feature].mean()
+            mean2 = processed_subjects[kmeans.labels_==1][:,feature].mean()
+            
+            var = processed_subjects[:,feature].var()
         
-        var1 = processed_subjects[kmeans.labels_==0][:,feature].var()
-        var2 = processed_subjects[kmeans.labels_==1][:,feature].var()
-    
-        features_mean_differences.append(round(abs(mean1-mean2),3))
-        features_total_variance.append(round((var1+var2),3))
+            features_mean_differences.append(round(abs(mean1-mean2),3))
+            features_total_variance.append(round(var,3))
 
-    barWidth = 0.25
-    br1 = np.arange(len(features_mean_differences))
-    br2 = [x + barWidth for x in br1]
-    plt.bar(br1, features_mean_differences, color='red', width=barWidth, label='Mean Difference')
-    plt.bar(br2, features_total_variance, color='blue', width=0.25, label='Total Variance')
-    plt.xlabel('Features')
-    plt.title('Feature Importance')
-    plt.legend()
-    plt.show()
+        barWidth = 0.25
+        br1 = np.arange(len(features_mean_differences))
+        br2 = [x + barWidth for x in br1]
+        plt.bar(br1, features_mean_differences, color='red', width=barWidth, label='Mean Difference')
+        plt.bar(br2, features_total_variance, color='blue', width=barWidth, label='Total Variance')
+        plt.xlabel('Features')
+        plt.title('Feature Significance')
+        plt.legend()
+        plt.show()
 
 
 

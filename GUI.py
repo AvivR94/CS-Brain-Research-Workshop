@@ -37,11 +37,11 @@ def runGUI():
   app = tk.Tk()
   app.title("Variable Input GUI")
 
-  num_of_sessions_label = tk.Label(app, text="Number of Sessions:")
-  num_of_sessions_entry = tk.Entry(app)
+  num_of_sessions_label = tk.Label(app, text="number of sessions:")
+  num_of_sessions_entry = tk.Entry(app, validate="key", validatecommand=(app.register(validate_numeric_input), '%P'))
 
-  num_of_runs_per_session_label = tk.Label(app, text="Number of Runs per Session:")
-  num_of_runs_per_session_entry = tk.Entry(app)
+  num_of_runs_per_session_label = tk.Label(app, text="number of runs per session:")
+  num_of_runs_per_session_entry = tk.Entry(app, validate="key", validatecommand=(app.register(validate_numeric_input), '%P'))
 
   success_cols_names_label = tk.Label(app, text="success columns names:")
   success_cols_names_entry = tk.Entry(app)
@@ -58,12 +58,12 @@ def runGUI():
   run_on_processed_data_var = IntVar()
   run_on_processed_data_box = tk.Checkbutton(app, text="run on the proccessed data (unchecked means run on raw data)", variable=run_on_processed_data_var)
 
-  data_file_path_label = tk.Label(app, text="Select Raw Data File:")
+  data_file_path_label = tk.Label(app, text="select raw data file:")
   data_file_path_entry = tk.Entry(app, width=50)
 
-  choose_data_file_path_button = tk.Button(app, text="Choose File", command=choose_directory)
+  choose_data_file_path_button = tk.Button(app, text="choose file", command=choose_directory)
 
-  correlation_threshold_label = tk.Label(app, text="Enter Numeric Value:")
+  correlation_threshold_label = tk.Label(app, text="correlation threshold:")
   correlation_threshold_entry = tk.Entry(app, validate="key", validatecommand=(app.register(validate_numeric_input), '%P'))
 
 
