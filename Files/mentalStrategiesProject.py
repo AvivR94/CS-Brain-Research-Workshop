@@ -285,10 +285,7 @@ def runApp():
 
     #linear models
     linear_regression_model = sklearn.linear_model.LinearRegression()
-    logistic_regression_model = sklearn.linear_model.LogisticRegression()
     random_forest_model = sklearn.ensemble.RandomForestClassifier()
-    xgboost_model = sklearn.ensemble.GradientBoostingClassifier()
-    svm_model = sklearn.svm.SVC()
 
     #clustering models
     kmeans = sklearn.cluster.KMeans(n_clusters=2, random_state=0)
@@ -303,26 +300,24 @@ def runApp():
         max_score = 0
         score=0
         last_minus_first_session_success_rates = np.array(last_minus_first_session_success_rates).reshape(-1, 1)
-        while not (max_score > 0.86 and score > 0.7) : #TODO: delete
-            predictions_avg = 0 
-            # success_avg = 0
-            score = 0
-            max_score = 0
-            for i in range(5):
-                forest_x_train, forest_x_test, forest_y_train, forest_y_test = \
-                    train_test_split(last_minus_first_session_success_rates, kmeans_predictions, test_size=0.3)
-                forest_predictions = regression(model, forest_x_train, forest_y_train, forest_x_test) 
-                forest_y_test = np.array(forest_y_test).reshape(-1, 1)
-                forest_predictions = np.array(forest_predictions).reshape(-1, 1)
-                model_score = accuracy_score(forest_y_test, forest_predictions)
-                if model_score > max_score:
-                    max_score = model_score
-                    best_predictions = forest_predictions
-                    best_x_test = forest_x_test
-                    best_y_test = forest_y_test
-                score += model_score
-                predictions_avg += forest_predictions
-            score = score/5
+        predictions_avg = 0 
+        score = 0
+        max_score = 0
+        for i in range(5):
+            forest_x_train, forest_x_test, forest_y_train, forest_y_test = \
+                train_test_split(last_minus_first_session_success_rates, kmeans_predictions, test_size=0.3)
+            forest_predictions = regression(model, forest_x_train, forest_y_train, forest_x_test) 
+            forest_y_test = np.array(forest_y_test).reshape(-1, 1)
+            forest_predictions = np.array(forest_predictions).reshape(-1, 1)
+            model_score = accuracy_score(forest_y_test, forest_predictions)
+            if model_score > max_score:
+                max_score = model_score
+                best_predictions = forest_predictions
+                best_x_test = forest_x_test
+                best_y_test = forest_y_test
+            score += model_score
+            predictions_avg += forest_predictions
+        score = score/5
         print(f'kmeans average score: {round(score,3)}\nkmeans best score: {round(max_score,3)}')
         last_minus_first_session_success_rates = np.array(last_minus_first_session_success_rates).reshape(-1, 1)
         plot_kmeans(kmeans_predictions, last_minus_first_session_success_rates, "Kmeans Classification")
